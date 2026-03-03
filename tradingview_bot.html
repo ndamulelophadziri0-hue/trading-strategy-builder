@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView Strategy Bot Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e27;
+            color: #e2e8f0;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Glassmorphism */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Neon Glow Effects */
+        .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        /* Animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-slow { animation: pulse-slow 3s infinite; }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        /* Code Editor Styling */
+        .code-editor {
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+        }
+        .code-keyword { color: #ff7b72; }
+        .code-function { color: #d2a8ff; }
+        .code-variable { color: #79c0ff; }
+        .code-string { color: #a5d6ff; }
+        .code-comment { color: #8b949e; font-style: italic; }
+        /* Strategy Card Hover */
+        .strategy-card {
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        .strategy-card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.3);
+        }
+        .strategy-card.active {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #22c55e;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #22c55e;
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+    <!-- Background Grid -->
+    <div class="fixed inset-0 z-0 opacity-20 pointer-events-none">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(59,130,246,0.3) 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+    <!-- Header -->
+    <header class="relative z-10 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center glow-blue">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">PineScript Bot Builder</h1>
+                    <p class="text-xs text-slate-400">Advanced Strategy Generator for TradingView</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-xs text-slate-300">System Active</span>
+                </div>
+                <button onclick="copyToClipboard()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all glow-blue flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Copy Script
+                </button>
+            </div>
+        </div>
+    </header>
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Panel: Strategy Configuration -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Strategy Selector -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        Strategy Template
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3" id="strategyGrid">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+                <!-- Parameters -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Parameters
+                    </h2>
+                    <div id="paramsContainer" class="space-y-4">
+                        <!-- Dynamic Parameters -->
+                    </div>
+                </div>
+                <!-- Risk Management -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        Risk Management
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Stop Loss (%)</label>
+                            <input type="number" id="stopLoss" value="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none transition-colors" onchange="generateCode()">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Take Profit (%)</label>
+                            <input type="number" id="takeProfit" value="4" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none transition-colors" onchange="generateCode()">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-slate-400">Trailing Stop</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="trailingStop" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 left-0" onchange="generateCode()">
+                                <label for="trailingStop" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-700 cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right Panel: Code & Preview -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Code Editor -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <div class="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span class="ml-3 text-sm text-slate-400 mono">strategy.pine</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="resetCode()" class="text-xs px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">Reset</button>
+                            <button onclick="downloadCode()" class="text-xs px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">Download</button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <textarea id="codeEditor" class="code-editor mono w-full h-96 p-4 resize-none focus:outline-none text-sm" spellcheck="false" oninput="manualEdit()"></textarea>
+                        <div id="lineNumbers" class="absolute left-0 top-0 bottom-0 w-12 bg-slate-900/50 border-r border-slate-800 text-right pr-2 pt-4 text-xs text-slate-600 mono select-none">
+                            1
+                        </div>
+                    </div>
+                </div>
+                <!-- Signal Detection Preview -->
+                <div class="glass rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Signal Detection Logic
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="signalPreview">
+                        <!-- Dynamic Signal Cards -->
+                    </div>
+                </div>
+                <!-- Implementation Guide -->
+                <div class="glass rounded-xl p-6 border-l-4 border-blue-500">
+                    <h3 class="text-lg font-semibold mb-3 text-blue-400">TradingView Implementation Guide</h3>
+                    <ol class="space-y-2 text-sm text-slate-300 list-decimal list-inside">
+                        <li>Open TradingView Pine Editor (bottom panel)</li>
+                        <li>Copy the generated code above</li>
+                        <li>Paste into the editor and click "Add to Chart"</li>
+                        <li>Strategy will auto-detect buy/sell signals based on your logic</li>
+                        <li>View performance in "Strategy Tester" tab</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="bg-slate-800 border border-slate-700 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span id="toastMessage">Copied to clipboard!</span>
+        </div>
+    </div>
+    <script>
+        // Strategy Templates
+        const strategies = {
+            ema_cross: {
+                name: "EMA Crossover",
+                description: "Classic golden cross strategy using fast and slow EMAs",
+                icon: "⚡",
+                params: [
+                    { id: "fastLength", label: "Fast EMA Length", value: 9, min: 2, max: 100 },
+                    { id: "slowLength", label: "Slow EMA Length", value: 21, min: 5, max: 200 }
+                ],
+                logic: (p) => `
+// EMA Crossover Strategy
+fastEMA = ta.ema(close, ${p.fastLength})
+slowEMA = ta.ema(close, ${p.slowLength})
+// Buy when fast crosses above slow
+longCondition = ta.crossover(fastEMA, slowEMA)
+// Sell when fast crosses below slow
+shortCondition = ta.crossunder(fastEMA, slowEMA)
+// Plot EMAs
+plot(fastEMA, "Fast EMA", color.new(color.blue, 0), 2)
+plot(slowEMA, "Slow EMA", color.new(color.orange, 0), 2)`
+            },
+            rsi_divergence: {
+                name: "RSI Divergence",
+                description: "Detects bullish/bearish divergences with RSI",
+                icon: "📊",
+                params: [
+                    { id: "rsiLength", label: "RSI Length", value: 14, min: 2, max: 50 },
+                    { id: "oversold", label: "Oversold Level", value: 30, min: 10, max: 40 },
+                    { id: "overbought", label: "Overbought Level", value: 70, min: 60, max: 90 }
+                ],
+                logic: (p) => `
+// RSI Divergence Strategy
+rsi = ta.rsi(close, ${p.rsiLength})
+rsiHigh = ta.pivothigh(rsi, 5, 5)
+rsiLow = ta.pivotlow(rsi, 5, 5)
+priceHigh = ta.pivothigh(high, 5, 5)
+priceLow = ta.pivotlow(low, 5, 5)
+// Bullish Divergence: Price lower low, RSI higher low
+bullDiv = not na(rsiLow) and not na(priceLow) and priceLow < priceLow[1] and rsiLow > rsiLow[1] and rsiLow < ${p.oversold}
+// Bearish Divergence: Price higher high, RSI lower high
+bearDiv = not na(rsiHigh) and not na(priceHigh) and priceHigh > priceHigh[1] and rsiHigh < rsiHigh[1] and rsiHigh > ${p.overbought}
+longCondition = bullDiv
+shortCondition = bearDiv
+// Plot RSI
+hline(${p.overbought}, "Overbought", color.red)
+hline(${p.oversold}, "Oversold", color.green)
+plot(rsi, "RSI", color.purple)`
+            },
+            bollinger_breakout: {
+                name: "Bollinger Breakout",
+                description: "Volatility-based breakout strategy",
+                icon: "🎯",
+                params: [
+                    { id: "bbLength", label: "BB Length", value: 20, min: 5, max: 50 },
+                    { id: "bbMult", label: "StdDev Multiplier", value: 2.0, min: 0.5, max: 4, step: 0.1 }
+                ],
+                logic: (p) => `
+// Bollinger Bands Breakout
+basis = ta.sma(close, ${p.bbLength})
+dev = ${p.bbMult} * ta.stdev(close, ${p.bbLength})
+upper = basis + dev
+lower = basis - dev
+// Breakout logic
+longCondition = close > upper and close[1] <= upper[1]
+shortCondition = close < lower and close[1] >= lower[1]
+// Plot Bollinger Bands
+p1 = plot(upper, "Upper Band", color.red)
+p2 = plot(lower, "Lower Band", color.green)
+fill(p1, p2, title="Background", color=color.new(color.blue, 95))
+plot(basis, "Basis", color.orange)`
+            },
+            macd_momentum: {
+                name: "MACD Momentum",
+                description: "Trend following using MACD histogram momentum",
+                icon: "🚀",
+                params: [
+                    { id: "fastMACD", label: "Fast Length", value: 12, min: 2, max: 50 },
+                    { id: "slowMACD", label: "Slow Length", value: 26, min: 5, max: 100 },
+                    { id: "signalMACD", label: "Signal Length", value: 9, min: 2, max: 50 }
+                ],
+                logic: (p) => `
+// MACD Strategy
+[macdLine, signalLine, hist] = ta.macd(close, ${p.fastMACD}, ${p.slowMACD}, ${p.signalMACD})
+// Entry on histogram momentum shift
+longCondition = hist > 0 and hist > hist[1] and hist[1] <= hist[2]
+shortCondition = hist < 0 and hist < hist[1] and hist[1] >= hist[2]
+// Plot MACD
+plot(hist, "Histogram", color.new(hist >= 0 ? color.green : color.red, 0), style=plot.style_histogram)
+plot(macdLine, "MACD", color.blue)
+plot(signalLine, "Signal", color.orange)`
+            },
+            custom: {
+                name: "Custom Logic",
+                description: "Write your own Pine Script conditions",
+                icon: "⚙️",
+                params: [],
+                logic: () => `
+// Custom Strategy Logic
+// Edit the conditions below:
+longCondition = close > open and volume > ta.sma(volume, 20)
+shortCondition = close < open and rsi > 70`
+            }
+        };
+        let currentStrategy = 'ema_cross';
+        let isManualEdit = false;
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderStrategyGrid();
+            renderParams();
+            generateCode();
+        });
+        function renderStrategyGrid() {
+            const grid = document.getElementById('strategyGrid');
+            grid.innerHTML = Object.entries(strategies).map(([key, strat]) => `
+                <div class="strategy-card ${key === currentStrategy ? 'active' : ''} p-4 rounded-lg bg-slate-800/50 cursor-pointer" onclick="selectStrategy('${key}')">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">${strat.icon}</span>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-white">${strat.name}</h3>
+                            <p class="text-xs text-slate-400 mt-1">${strat.description}</p>
+                        </div>
+                        ${key === currentStrategy ? '<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        function selectStrategy(key) {
+            currentStrategy = key;
+            isManualEdit = false;
+            renderStrategyGrid();
+            renderParams();
+            generateCode();
+        }
+        function renderParams() {
+            const container = document.getElementById('paramsContainer');
+            const strat = strategies[currentStrategy];
+            if (strat.params.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 italic">No parameters for custom logic. Edit code directly.</p>';
+                return;
+            }
+            container.innerHTML = strat.params.map(param => `
+                <div class="slide-in">
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm text-slate-300">${param.label}</label>
+                        <span class="text-sm text-blue-400 font-mono" id="val-${param.id}">${param.value}</span>
+                    </div>
+                    <input type="range" 
+                        id="${param.id}" 
+                        min="${param.min}" 
+                        max="${param.max}" 
+                        step="${param.step || 1}" 
+                        value="${param.value}"
+                        class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        oninput="updateParam('${param.id}', this.value)"
+                    >
+                </div>
+            `).join('');
+        }
+        function updateParam(id, value) {
+            document.getElementById(`val-${id}`).textContent = value;
+            if (!isManualEdit) generateCode();
+        }
+        function generateCode() {
+            if (isManualEdit) return;
+            const strat = strategies[currentStrategy];
+            const params = {};
+            // Collect parameter values
+            strat.params.forEach(p => {
+                const el = document.getElementById(p.id);
+                params[p.id] = el ? (p.step && p.step < 1 ? parseFloat(el.value) : parseInt(el.value)) : p.value;
+            });
+            const stopLoss = document.getElementById('stopLoss').value;
+            const takeProfit = document.getElementById('takeProfit').value;
+            const useTrailing = document.getElementById('trailingStop').checked;
+            const code = `// @version=5
+strategy("${strat.name} Bot", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10, commission_type=strategy.commission.percent, commission_value=0.1)
+// ═════════════════════════════════════════════════════════════════════════════
+// STRATEGY PARAMETERS
+// ═════════════════════════════════════════════════════════════════════════════
+${strat.params.map(p => `${p.id} = input.int(${params[p.id]}, "${p.label}", minval=${p.min}, maxval=${p.max}, group="Strategy Settings")`).join('\n')}
+// Risk Management
+stopLossPerc = input.float(${stopLoss}, "Stop Loss %", minval=0.1, maxval=100, step=0.1, group="Risk Management")
+takeProfitPerc = input.float(${takeProfit}, "Take Profit %", minval=0.1, maxval=100, step=0.1, group="Risk Management")
+useTrailingStop = input.bool(${useTrailing}, "Use Trailing Stop", group="Risk Management")
+trailPerc = input.float(1.5, "Trailing Stop %", minval=0.1, maxval=10, step=0.1, group="Risk Management")
+// ═════════════════════════════════════════════════════════════════════════════
+${strat.logic(params)}
+// ═════════════════════════════════════════════════════════════════════════════
+// SIGNAL DETECTION & EXECUTION
+// ═════════════════════════════════════════════════════════════════════════════
+// Calculate position size based on risk
+riskPerc = stopLossPerc
+posSize = strategy.equity * (riskPerc / 100) / (close * (stopLossPerc / 100))
+// Entry Logic
+if longCondition
+    strategy.entry("Long", strategy.long, qty=posSize, comment="BUY ▲")
+if shortCondition
+    strategy.close("Long", comment="SELL ▼")
+    // Uncomment for short selling:
+    // strategy.entry("Short", strategy.short, qty=posSize, comment="SHORT ▼")
+// Exit Logic - Stop Loss & Take Profit
+if strategy.position_size > 0
+    // Stop Loss
+    strategy.exit("SL/TP", "Long", stop=close * (1 - stopLossPerc/100), limit=close * (1 + takeProfitPerc/100))
+    // Trailing Stop (optional)
+    if useTrailingStop
+        strategy.exit("Trailing", "Long", trail_points=close * (trailPerc/100)/syminfo.mintick, trail_offset=close * (trailPerc/100)/syminfo.mintick)
+// ═════════════════════════════════════════════════════════════════════════════
+// VISUALIZATION
+// ═════════════════════════════════════════════════════════════════════════════
+// Plot Buy/Sell signals
+plotshape(longCondition, title="Buy Signal", location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, text="BUY")
+plotshape(shortCondition, title="Sell Signal", location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, text="SELL")
+// Background coloring for trend
+bgcolor(longCondition ? color.new(color.green, 90) : shortCondition ? color.new(color.red, 90) : na)
+// Alerts
+alertcondition(longCondition, title="Buy Alert", message="Buy Signal Detected on {{ticker}} at {{close}}")
+alertcondition(shortCondition, title="Sell Alert", message="Sell Signal Detected on {{ticker}} at {{close}}")`;            document.getElementById('codeEditor').value = code;
+            updateLineNumbers();
+            updateSignalPreview(strat, params);
+        }
+        function updateSignalPreview(strat, params) {
+            const container = document.getElementById('signalPreview');
+            let buyLogic, sellLogic;
+            switch(currentStrategy) {
+                case 'ema_cross':
+                    buyLogic = `Fast EMA (${params.fastLength}) crosses above Slow EMA (${params.slowLength})`;
+                    sellLogic = `Fast EMA crosses below Slow EMA`;
+                    break;
+                case 'rsi_divergence':
+                    buyLogic = `Bullish divergence detected (Price ↓, RSI ↑) below ${params.oversold}`;
+                    sellLogic = `Bearish divergence detected (Price ↑, RSI ↓) above ${params.overbought}`;
+                    break;
+                case 'bollinger_breakout':
+                    buyLogic = `Price closes above Upper Bollinger Band (${params.bbMult}σ)`;
+                    sellLogic = `Price closes below Lower Bollinger Band`;
+                    break;
+                case 'macd_momentum':
+                    buyLogic = `MACD histogram momentum increasing in positive territory`;
+                    sellLogic = `MACD histogram momentum decreasing in negative territory`;
+                    break;
+                default:
+                    buyLogic = `Custom long condition met`;
+                    sellLogic = `Custom short condition met`;
+            }
+            const stopLoss = document.getElementById('stopLoss').value;
+            const takeProfit = document.getElementById('takeProfit').value;
+            container.innerHTML = `
+                <div class="bg-slate-800/50 rounded-lg p-4 border border-green-500/30 glow-green">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                        </div>
+                        <h3 class="font-semibold text-green-400">BUY Signal</h3>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-2">${buyLogic}</p>
+                    <div class="text-xs text-slate-500 mono">Stop Loss: -${stopLoss}% | Take Profit: +${takeProfit}%</div>
+                </div>
+                <div class="bg-slate-800/50 rounded-lg p-4 border border-red-500/30 glow-red">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        </div>
+                        <h3 class="font-semibold text-red-400">SELL Signal</h3>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-2">${sellLogic}</p>
+                    <div class="text-xs text-slate-500 mono">Auto-exit on opposite signal or SL/TP hit</div>
+                </div>
+            `;
+        }
+        function manualEdit() {
+            isManualEdit = true;
+            updateLineNumbers();
+        }
+        function updateLineNumbers() {
+            const textarea = document.getElementById('codeEditor');
+            const lines = textarea.value.split('\n').length;
+            const lineNumbers = document.getElementById('lineNumbers');
+            lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+        }
+        function copyToClipboard() {
+            const code = document.getElementById('codeEditor').value;
+            navigator.clipboard.writeText(code).then(() => {
+                showToast('Script copied to clipboard!');
+            });
+        }
+        function downloadCode() {
+            const code = document.getElementById('codeEditor').value;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `strategy_${currentStrategy}.pine`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('File downloaded!');
+        }
+        function resetCode() {
+            isManualEdit = false;
+            generateCode();
+            showToast('Code reset to template');
+        }
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        // Auto-update line numbers on scroll
+        document.getElementById('codeEditor').addEventListener('scroll', function() {
+            document.getElementById('lineNumbers').scrollTop = this.scrollTop;
+        });
+    </script>
+</body>
+</html>
